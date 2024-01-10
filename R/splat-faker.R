@@ -3,6 +3,7 @@
 #' Fake count data from a fictional single-cell RNA-seq experiment using
 #' the Splat method.
 #'
+#' @param gene_means A named vector with mean gene expression counts.
 #' @param params SplatParams object containing parameters for the simulation.
 #'        See \code{\link{SplatParams}} for details.
 #' @param method which simulation method to use. Options are "single" which
@@ -28,7 +29,7 @@
 #' \enumerate{
 #'     \item Set up simulation object
 #'     \item Simulate library sizes
-#'     \item Simulate gene means
+#'     \item Set gene means
 #'     \item Simulate groups/paths
 #'     \item Simulate BCV adjusted cell means
 #'     \item Simulate true counts
@@ -102,7 +103,7 @@
 #' Code: \url{https://github.com/Oshlack/splatter}
 #'
 #' @seealso
-#' \code{\link{splatSimLibSizes}}, \code{\link{splatSimGeneMeans}},
+#' \code{\link{splatSimLibSizes}}, \code{\link{splatSetGeneMeans}},
 #' \code{\link{splatSimBatchEffects}}, \code{\link{splatSimBatchCellMeans}},
 #' \code{\link{splatSimDE}}, \code{\link{splatSimCellMeans}},
 #' \code{\link{splatSimBCVMeans}}, \code{\link{splatSimTrueCounts}},
@@ -110,19 +111,15 @@
 #'
 #' @examples
 #' # Simulation with default parameters
-#' sim <- splatSimulate()
+#' gene_means <- c("gene1"=123, "gene2"=2, "gene3"=78, "gene4"=3561)
+#' sim <- splatFake(gene_means)
+#' counts <- assays(sim)[["TrueCounts"]]
 #' \dontrun{
-#' # Simulation with different number of genes
-#' sim <- splatSimulate(nGenes = 1000)
 #' # Simulation with custom parameters
-#' params <- newSplatParams(nGenes = 100, mean.rate = 0.5)
-#' sim <- splatSimulate(params)
+#' params <- newSplatParams(out.prob = 0.2)
+#' sim <- splatFake(gene_means, params=params, , cell_name_prefix="Fake")
 #' # Simulation with adjusted custom parameters
-#' sim <- splatSimulate(params, mean.rate = 0.6, out.prob = 0.2)
-#' # Simulate groups
-#' sim <- splatSimulate(method = "groups")
-#' # Simulate paths
-#' sim <- splatSimulate(method = "paths")
+#' sim <- splatFake(gene_means, params=params, out.prob = 0.2)
 #' }
 #' @importFrom SummarizedExperiment rowData colData colData<- assays
 #' @importFrom SingleCellExperiment SingleCellExperiment
@@ -149,7 +146,8 @@ splatFake <- function(gene_means, params = newSplatParams(),
 
     # Get the parameters we are going to use
     nCells <- getParam(params, "nCells")
-    nGenes <- len(gene_means)
+    nGenes <- length(gene_means)
+    params <- setParam(params, "nGenes", nGenes)
     nBatches <- getParam(params, "nBatches")
     batch.cells <- getParam(params, "batchCells")
     nGroups <- getParam(params, "nGroups")
@@ -194,12 +192,13 @@ splatFake <- function(gene_means, params = newSplatParams(),
 
     if (verbose) {message("Simulating library sizes...")}
     sim <- splatSimLibSizes(sim, params)
-    if (verbose) {message("Simulating gene means...")}
+    if (verbose) {message("Setting gene means...")}
     sim <- splatSetGeneMeans(sim, params, gene_means)
     if (nBatches > 1) {
         if (verbose) {message("Simulating batch effects...")}
         sim <- splatSimBatchEffects(sim, params)
     }
+    if (verbose) {message("Simulating batch cell means...")}
     sim <- splatSimBatchCellMeans(sim, params)
     if (method == "single") {
         sim <- splatSimSingleCellMeans(sim, params)
@@ -252,7 +251,7 @@ splatSetGeneMeans <- function(sim, params, gene_means) {
     # If changes are made to the "add expression outliers" method here, please
     # make the same changes in splatPopSimGeneMeans.
 
-    nGenes <- len(gene_means)
+    nGenes <- length(gene_means)
     out.prob <- getParam(params, "out.prob")
     out.facLoc <- getParam(params, "out.facLoc")
     out.facScale <- getParam(params, "out.facScale")
