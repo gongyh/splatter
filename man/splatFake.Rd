@@ -124,7 +124,7 @@ counts <- assays(sim)[["TrueCounts"]]
 \dontrun{
 # Simulation with custom parameters
 params <- newSplatParams(out.prob = 0.2)
-sim <- splatFake(gene_means, params=params, , cell_name_prefix="Fake")
+sim <- splatFake(gene_means, params=params, cell_name_prefix="Fake")
 # Simulation with adjusted custom parameters
 sim <- splatFake(gene_means, params=params, out.prob = 0.2)
 }
